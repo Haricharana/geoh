@@ -2,6 +2,8 @@ from shapely.geometry import shape, MultiPolygon, mapping
 import pandas as pd
 import geopandas as gpd
 import geohash as gh
+import json
+import time
 
 BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
 
@@ -67,3 +69,10 @@ def _geohash_to_shape(geohash):
         [box["w"], box["s"]],
     ]
     return shape({"type": "Polygon", "coordinates": [coords]})
+
+
+fp = json.loads(open('./95017.geojson').read())
+t1 = time.time()
+ghs  = geohashes(fp,8)
+print len(ghs)
+print time.time()-t1
