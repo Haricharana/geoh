@@ -7,7 +7,7 @@ import time
 
 BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
 
-def geohashes(geojson={}, precision=6):
+def geohashes(geojson={}, precision=6,start_level=2):
   """
     Return the list of geohashes that interects the geojson.
   """
@@ -15,7 +15,7 @@ def geohashes(geojson={}, precision=6):
   if not polygon:
     return []
 
-  p = min(2, precision)
+  p = min(start_level, precision)
   center_geohash = get_center_geohash(polygon, precision=p)
   _geohashes = [center_geohash] + gh.neighbors(center_geohash)
   _geohashes = geohashes_polygon_intersection(polygon, _geohashes)
@@ -73,6 +73,11 @@ def _geohash_to_shape(geohash):
 
 fp = json.loads(open('./95017.geojson').read())
 t1 = time.time()
-ghs  = geohashes(fp,8)
+ghs  = geohashes(fp,8,4)
+print len(ghs)
+print time.time()-t1
+
+t1 = time.time()
+ghs  = geohashes(fp,8,2)
 print len(ghs)
 print time.time()-t1
