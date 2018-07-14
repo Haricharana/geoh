@@ -21,6 +21,8 @@ def geohashes(geojson={}, precision=6):
   _geohashes = geohashes_polygon_intersection(polygon, _geohashes)
 
   while p < precision:
+    _geohashes_contained = geohashes_polygon_containes(polygon, _geohashes)
+    _geohashes = [x for x in _geohashes if x not in _geohashes_contained]
     _geohashes = _generate_inner_geohashes_for_geohashes(_geohashes)
     _geohashes = geohashes_polygon_intersection(polygon, _geohashes)
     p += 1
@@ -32,6 +34,11 @@ def get_center_geohash(polygon, precision=2):
   return gh.encode(centroid[1], centroid[0], precision=precision)
 
 def geohashes_polygon_intersection(polygon, geohashes=[]):
+  df = gpd.GeoDataFrame(geohashes, columns=["geohash"])
+  df["geometry"] = df.apply(lambda x: _geohash_to_shape(x["geohash"]), axis=1)
+  return list(df[df.intersects(polygon)].geohash)
+
+def geohashes_polygon_containes(polygon, geohashes=[]):
   df = gpd.GeoDataFrame(geohashes, columns=["geohash"])
   df["geometry"] = df.apply(lambda x: _geohash_to_shape(x["geohash"]), axis=1)
   return list(df[df.intersects(polygon)].geohash)
