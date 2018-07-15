@@ -12,6 +12,7 @@ def geohashes(geojson={}, precision=6):
     Return the list of geohashes that interects the geojson.
   """
   polygon = _polygon_from_geojson(geojson)
+  _geohashes_final = []
   if not polygon:
     return []
 
@@ -19,15 +20,31 @@ def geohashes(geojson={}, precision=6):
   center_geohash = get_center_geohash(polygon, precision=p)
   _geohashes = [center_geohash] + gh.neighbors(center_geohash)
   _geohashes = geohashes_polygon_intersection(polygon, _geohashes)
+  if precision == 2:
+      _geohashes_final = _geohashes
+
 
   while p < precision:
-    _geohashes_contained = geohashes_polygon_containes(polygon, _geohashes)
+    _geohashes_contained = geohashes_polygon_containes(polygon,_geohashes)
+    _geohashes_final.extend(geohashToprecision(_geohashes_contained,precision))
     _geohashes = [x for x in _geohashes if x not in _geohashes_contained]
     _geohashes = _generate_inner_geohashes_for_geohashes(_geohashes)
     _geohashes = geohashes_polygon_intersection(polygon, _geohashes)
     p += 1
+  _geohashes_final.extend(_geohashes)
+  return _geohashes_final
 
-  return _geohashes
+def geohashToprecision(_geohashestoconvert,precision):
+    if _geohashestoconvert:
+        l1 = len(_geohashestoconvert[0])
+        if l1 != precision:
+            for i in range(precision-l1):
+                _geohashestoconvert=_generate_inner_geohashes_for_geohashes(
+                    _geohashestoconvert)
+        return _geohashestoconvert
+    else:
+        return _geohashestoconvert
+
 
 def get_center_geohash(polygon, precision=2):
   centroid = mapping(polygon.centroid)["coordinates"]
@@ -36,12 +53,13 @@ def get_center_geohash(polygon, precision=2):
 def geohashes_polygon_intersection(polygon, geohashes=[]):
   df = gpd.GeoDataFrame(geohashes, columns=["geohash"])
   df["geometry"] = df.apply(lambda x: _geohash_to_shape(x["geohash"]), axis=1)
+  # print df
   return list(df[df.intersects(polygon)].geohash)
 
 def geohashes_polygon_containes(polygon, geohashes=[]):
   df = gpd.GeoDataFrame(geohashes, columns=["geohash"])
   df["geometry"] = df.apply(lambda x: _geohash_to_shape(x["geohash"]), axis=1)
-  return list(df[df.intersects(polygon)].geohash)
+  return list(df[df.within(polygon)].geohash)
 
 def _generate_inner_geohashes_for_geohashes(geohashes=[]):
   return _flatten(map(_generate_inner_geohashes_for_geohash, geohashes))
@@ -77,9 +95,9 @@ def _geohash_to_shape(geohash):
     ]
     return shape({"type": "Polygon", "coordinates": [coords]})
 
-
-fp = json.loads(open('./95017.geojson').read())
-t1 = time.time()
-ghs  = geohashes(fp,8)
-print len(ghs)
-print time.time()-t1
+if __name__ == "__main__":
+    fp = json.loads(open('./95017.geojson').read())
+    t1 = time.time()
+    ghs  = geohashes(fp,8)
+    print len(ghs)
+    print time.time()-t1
